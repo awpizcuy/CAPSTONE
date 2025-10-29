@@ -14,16 +14,30 @@ class ReportController extends Controller
     /**
      * Menampilkan dashboard Admin Gedung
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil data laporan yang dibuat oleh user ini saja
-        $laporan = Report::where('user_id', Auth::id())
-                         ->orderBy('created_at', 'desc')
-                         ->get();
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+
+        $query = Report::where('user_id', Auth::id());
+
+        if ($dateFrom || $dateTo) {
+            if ($dateFrom && $dateTo) {
+                $query->whereBetween('tanggal_pengajuan', [$dateFrom, $dateTo]);
+            } elseif ($dateFrom) {
+                $query->whereDate('tanggal_pengajuan', '>=', $dateFrom);
+            } elseif ($dateTo) {
+                $query->whereDate('tanggal_pengajuan', '<=', $dateTo);
+            }
+        }
+
+        $laporan = $query->orderBy('created_at', 'desc')->get();
 
         // Kirim data ke view
         return view('admin-gedung.dashboard', [
-            'laporan' => $laporan
+            'laporan' => $laporan,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
         ]);
     }
 

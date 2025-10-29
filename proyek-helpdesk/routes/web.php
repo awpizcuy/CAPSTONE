@@ -90,6 +90,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [HeadITReportController::class, 'index'])->name('dashboard');
         Route::get('/report/{report}/manage', [HeadITReportController::class, 'manage'])->name('report.manage');
         Route::post('/report/{report}/update', [HeadITReportController::class, 'update'])->name('report.update');
+        // Export/Print view for completed/rated reports
+        Route::get('/report/{report}/print', [HeadITReportController::class, 'printView'])->name('report.print');
         Route::resource('technicians', TechnicianController::class);
     });
 

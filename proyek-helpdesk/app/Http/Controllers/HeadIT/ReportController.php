@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use App\Notifications\ReportAssignedToYou;
 use Illuminate\Support\Carbon;
+use Carbon\CarbonInterval;
 
 class ReportController extends Controller
 {
@@ -21,6 +22,7 @@ class ReportController extends Controller
         $searchTerm = $request->query('search');
         $filterStatus = $request->query('filter_status');
         $filterCategory = $request->query('filter_category');
+        $dateFrom = $request->query('date_from');
 
         // Mulai query builder untuk Report
         $query = Report::with('reporter');
@@ -39,83 +41,57 @@ class ReportController extends Controller
         if ($searchTerm) {
             $query->where(function($q) use ($searchTerm) {
                 $q->where('nama_pelapor', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('kategori', 'like', '%' . $searchTerm . '%')
-                  ->orWhere('deskripsi_pengajuan', 'like', '%' . $searchTerm . '%')
-                  ->orWhereHas('reporter', function($reporterQuery) use ($searchTerm) {
-                      $reporterQuery->where('email', 'like', '%' . $searchTerm . '%');
-                  });
+                    ->orWhere('kategori', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('deskripsi_pengajuan', 'like', '%' . $searchTerm . '%')
+                    ->orWhereHas('reporter', function($reporterQuery) use ($searchTerm) {
+                        $reporterQuery->where('email', 'like', '%' . $searchTerm . '%');
+                    });
             });
+        }
+
+        // Tambahkan Filter Tanggal (berdasarkan tanggal_pengajuan - mulai dari tanggal yang dipilih)
+        if ($dateFrom) {
+            $query->whereDate('tanggal_pengajuan', '>=', $dateFrom);
         }
 
         // Ambil data laporan yang difilter dengan pagination
         $reports = $query->orderBy('created_at', 'desc')
-                         ->paginate(10)
-                         ->withQueryString();
+                            ->paginate(10)
+                            ->withQueryString();
 
 
-        // === PENGUMPULAN DATA GRAFIK & KARTU (STATISTIK) ===
+        // === PENGUMPULAN DATA KARTU (STATISTIK) ===
 
-        // 1. Grafik Rekapan Status Laporan (Donut Chart)
-        $statusCounts = Report::select('status', DB::raw('count(*) as total'))
-                              ->groupBy('status')
-                              ->pluck('total', 'status');
-        $statusColors = [
-            'pending' => 'rgb(255, 99, 132)',
-            'accepted' => 'rgb(54, 162, 235)',
-            'on_process' => 'rgb(255, 205, 86)',
-            'completed' => 'rgb(75, 192, 192)',
-            'rated' => 'rgb(153, 102, 255)',
-            'rejected' => 'rgb(201, 203, 207)',
-            'hold' => 'rgb(255, 159, 64)',
-        ];
-        $chartColorsStatus = $statusCounts->keys()->map(fn($status) => $statusColors[$status] ?? 'rgb(100, 100, 100)')->values();
-        $chartDataStatus = [ // <--- PASTIKAN DEFINISI INI TIDAK TERPOTONG
-            'labels' => $statusCounts->keys()->map(fn($status) => ucfirst(str_replace('_', ' ', $status))),
-            'data' => $statusCounts->values(),
-            'colors' => $chartColorsStatus,
-        ];
-
-        // 2. Grafik Rata-rata Rating Teknisi (Bar Chart)
-        $teknisiRatings = User::where('role', 'teknisi')
-            ->whereHas('tasks', fn($q) => $q->whereNotNull('rating'))
-            ->withAvg('tasks', 'rating')
-            ->get()
-            ->filter(fn($t) => !is_null($t->tasks_avg_rating));
-        $chartDataRatings = [
-            'labels' => $teknisiRatings->pluck('name'),
-            'data' => $teknisiRatings->pluck('tasks_avg_rating'),
-        ];
-
-        // 3. Data untuk Kartu Statistik
+        // Data untuk Kartu Statistik (sesuai file view)
         $totalReports = Report::count();
         $pendingReports = Report::where('status', 'pending')->count();
-        $averageCompletionMinutes = Report::whereIn('status', ['completed', 'rated'])
-                                         ->whereNotNull('duration_minutes')
-                                         ->avg('duration_minutes');
-        $averageCompletionTime = $averageCompletionMinutes
-            ? Carbon::now()->addMinutes((float)$averageCompletionMinutes)->diffForHumans(Carbon::now(), true, false, 2)
-            : 'N/A';
+        $averageMinutes = Report::whereIn('status', ['completed', 'rated'])
+                                ->whereNotNull('start_time')
+                                ->whereNotNull('end_time')
+                                ->select(DB::raw('AVG(TIMESTAMPDIFF(MINUTE, start_time, end_time)) as avg_duration'))
+                                ->value('avg_duration');
 
-        // 4. Data untuk Grafik Laporan per Kategori (Bar Chart)
-        $categoryCounts = Report::select('kategori', DB::raw('count(*) as total'))
-                                ->groupBy('kategori')
-                                ->pluck('total', 'kategori');
-        $chartDataCategory = [
-            'labels' => $categoryCounts->keys()->map(fn($k) => ucfirst($k)),
-            'data' => $categoryCounts->values(),
-        ];
+        $averageCompletionTime = "N/A";
 
+        if ($averageMinutes && $averageMinutes > 0) {
+            $totalMinutes = round($averageMinutes);
+            $averageCompletionTime = CarbonInterval::minutes($totalMinutes)
+                                        ->cascade()
+                                        ->forHumans(['short' => true]);
+        }
 
-        // === KIRIM SEMUA DATA KE VIEW ===
+        // Kirim data ke view
         return view('kepala-it.dashboard', [
             'reports' => $reports,
-            'chartDataStatus' => $chartDataStatus,
-            'chartDataRatings' => $chartDataRatings,
             'totalReports' => $totalReports,
             'pendingReports' => $pendingReports,
             'averageCompletionTime' => $averageCompletionTime,
-            'chartDataCategory' => $chartDataCategory,
-            'searchTerm' => $searchTerm
+
+            // Variabel untuk filter (agar tetap ada di form)
+            'searchTerm' => $searchTerm,
+            'filterStatus' => $filterStatus,
+            'filterCategory' => $filterCategory,
+            'dateFrom' => $dateFrom,
         ]);
     }
 
@@ -140,41 +116,60 @@ class ReportController extends Controller
     public function update(Request $request, Report $report)
     {
         $validated = $request->validate([
-        'status' => ['required', Rule::in(['accepted', 'hold', 'rejected'])],
-        'status_note' => 'nullable|string',
-        // Kita hapus Rule::requiredIf dan ganti dengan logic NULL di bawah
-        'assigned_technician_id' => [
-            'nullable',
-            'exists:users,id',
-        ],
-    ]);
+            'status' => ['required', Rule::in(['accepted', 'hold', 'rejected'])],
+            'status_note' => 'nullable|string',
+            'assigned_technician_id' => [
+                'nullable',
+                'exists:users,id',
+            ],
+        ]);
 
-    // 2. Siapkan data update
-    $updateData = [
-        'status' => $validated['status'],
-        'status_note' => $validated['status_note'],
-        'assigned_technician_id' => $validated['assigned_technician_id'],
-    ];
+        // 2. Siapkan data update
+        $updateData = [
+            'status' => $validated['status'],
+            'status_note' => $validated['status_note'],
+            'assigned_technician_id' => $validated['assigned_technician_id'],
+        ];
 
-    if ($request->status == 'accepted' && !$request->filled('assigned_technician_id')) {
-        $updateData['assigned_technician_id'] = null;
-    }
-
-    // 3. Update data laporan di database
-    $report->update($updateData);
-
-    // 4. Kirim Notifikasi ke Teknisi JIKA status 'accepted' DAN ditugaskan ke seseorang
-    if ($request->status == 'accepted' && $report->assigned_technician_id !== null) {
-        $technician = User::find($report->assigned_technician_id);
-        if ($technician) {
-            $report->refresh(); // Refresh data laporan
-            $technician->notify(new ReportAssignedToYou($report));
+        if ($request->status == 'accepted' && !$request->filled('assigned_technician_id')) {
+            $updateData['assigned_technician_id'] = null;
         }
+
+        // 3. Update data laporan di database
+        $report->update($updateData);
+
+        // 4. Kirim Notifikasi ke Teknisi JIKA status 'accepted' DAN ditugaskan ke seseorang
+        if ($request->status == 'accepted' && $report->assigned_technician_id !== null) {
+            $technician = User::find($report->assigned_technician_id);
+            if ($technician) {
+                $report->refresh(); // Refresh data laporan
+                $technician->notify(new ReportAssignedToYou($report));
+            }
+        }
+
+        // 5. Kembalikan ke dashboard Kepala IT dengan pesan sukses
+        return redirect()->route('kepala.dashboard')
+                            ->with('success', 'Status laporan telah berhasil diperbarui!');
     }
 
-    // 5. Kembalikan ke dashboard Kepala IT dengan pesan sukses
-    return redirect()->route('kepala.dashboard')
-                     ->with('success', 'Status laporan telah berhasil diperbarui!');
+    /**
+     * Cetak/Export tampilan laporan selesai ke halaman print-friendly.
+     * Pengguna dapat menyimpan sebagai PDF via dialog print browser.
+     */
+    public function printView(Report $report)
+    {
+        // Batasi hanya untuk status selesai atau dinilai
+        if (!in_array($report->status, ['completed', 'rated'])) {
+            return redirect()->route('kepala.report.manage', $report)
+                             ->with('error', 'Hanya laporan yang telah selesai yang dapat dicetak.');
+        }
+
+        // Pastikan relasi tersedia
+        $report->load(['reporter', 'technician', 'resolution']);
+
+        return view('kepala-it.report-print', [
+            'report' => $report,
+        ]);
     }
 
 }

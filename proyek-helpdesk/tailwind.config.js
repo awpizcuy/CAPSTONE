@@ -22,18 +22,16 @@ export default {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
-            
+
             colors: {
-                // Warna Primer (Korporat, Keandalan)
                 'primary': {
-                    'DEFAULT': '#005691', // Biru Navy (Aksen utama)
+                    'DEFAULT': '#005691',
                     '50': '#E0F0F7',
                     '100': '#B3D6E7',
                     '600': '#004778',
                     '700': '#00335A',
                 },
-                // Warna Sekunder/Aksen (Energi, Tombol Aksi)
-                'accent': '#00bcd4', // Hijau Teal
+                'accent': '#00bcd4',
             }
         },
     },

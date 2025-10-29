@@ -9,6 +9,11 @@ class Report extends Model
 {
     use HasFactory;
 
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
+    ];
+
     /**
      * The attributes that are mass assignable.
      *

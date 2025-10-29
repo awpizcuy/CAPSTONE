@@ -15,35 +15,72 @@ class TaskController extends Controller
     /**
      * Menampilkan dashboard Teknisi dengan daftar tugas
      */
-    public function index()
+    public function index(Request $request)
     {
         $teknisiId = Auth::id();
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
 
     // 1. Tugas Aktif (Accepted atau On Process)
-        $tasksActive = Report::where('assigned_technician_id', $teknisiId)
+        $tasksActiveQuery = Report::where('assigned_technician_id', $teknisiId)
                        ->whereIn('status', ['accepted', 'on_process'])
                        ->with('reporter')
-                       ->orderBy('status', 'asc')
-                       ->get();
+                       ->orderBy('status', 'asc');
+
+        if ($dateFrom || $dateTo) {
+            if ($dateFrom && $dateTo) {
+                $tasksActiveQuery->whereBetween('tanggal_pengajuan', [$dateFrom, $dateTo]);
+            } elseif ($dateFrom) {
+                $tasksActiveQuery->whereDate('tanggal_pengajuan', '>=', $dateFrom);
+            } elseif ($dateTo) {
+                $tasksActiveQuery->whereDate('tanggal_pengajuan', '<=', $dateTo);
+            }
+        }
+
+        $tasksActive = $tasksActiveQuery->get();
 
     // 2. Tugas Riwayat (Completed atau Rated)
-        $tasksHistory = Report::where('assigned_technician_id', $teknisiId)
+        $tasksHistoryQuery = Report::where('assigned_technician_id', $teknisiId)
                         ->whereIn('status', ['completed', 'rated'])
                         ->with('reporter')
-                        ->orderBy('end_time', 'desc')
-                        ->paginate(10); // Tambahkan pagination untuk riwayat
+                        ->orderBy('end_time', 'desc');
 
-        $tasksClaimable = Report::where('status', 'accepted')
+        if ($dateFrom || $dateTo) {
+            if ($dateFrom && $dateTo) {
+                $tasksHistoryQuery->whereBetween('tanggal_pengajuan', [$dateFrom, $dateTo]);
+            } elseif ($dateFrom) {
+                $tasksHistoryQuery->whereDate('tanggal_pengajuan', '>=', $dateFrom);
+            } elseif ($dateTo) {
+                $tasksHistoryQuery->whereDate('tanggal_pengajuan', '<=', $dateTo);
+            }
+        }
+
+        $tasksHistory = $tasksHistoryQuery->paginate(10);
+
+        $tasksClaimableQuery = Report::whereIn('status', ['pending', 'accepted'])
                           ->whereNull('assigned_technician_id')
                           ->with('reporter')
-                          ->orderBy('created_at', 'asc')
-                          ->get();
+                          ->orderBy('created_at', 'asc');
+
+        if ($dateFrom || $dateTo) {
+            if ($dateFrom && $dateTo) {
+                $tasksClaimableQuery->whereBetween('tanggal_pengajuan', [$dateFrom, $dateTo]);
+            } elseif ($dateFrom) {
+                $tasksClaimableQuery->whereDate('tanggal_pengajuan', '>=', $dateFrom);
+            } elseif ($dateTo) {
+                $tasksClaimableQuery->whereDate('tanggal_pengajuan', '<=', $dateTo);
+            }
+        }
+
+        $tasksClaimable = $tasksClaimableQuery->get();
 
     // Kirim kedua set data
         return view('teknisi.dashboard', [
         'tasksActive' => $tasksActive,
         'tasksClaimable' => $tasksClaimable, // <-- Kirim data klaim
-        'tasksHistory' => $tasksHistory
+        'tasksHistory' => $tasksHistory,
+        'dateFrom' => $dateFrom,
+        'dateTo' => $dateTo,
     ]);
     }
 
@@ -58,7 +95,7 @@ class TaskController extends Controller
 
         $report->update([
         'status' => 'on_process',
-        'start_time' => time() // Menggunakan PHP native time() (integer/timestamp UNIX)
+        'start_time' => now()
     ]);
 
         return redirect()->route('teknisi.dashboard')
@@ -103,19 +140,14 @@ class TaskController extends Controller
         $pathBefore = $request->file('foto_before')->store('resolutions');
         $pathAfter = $request->file('foto_after')->store('resolutions');
 
-        // 4. Hitung Durasi & Hentikan Timer
-        $endTime = time(); // Menggunakan timestamp UNIX
-
-        // Durasi dalam DETIK (Integer)
-        $durationSeconds = abs($endTime - strtotime($report->start_time));
-
-        // Durasi dalam MENIT (dikonversi dari detik)
-        $durationMinutes = round($durationSeconds / 60);
+        // 4. Hitung Durasi & Hentikan Timer (gunakan Carbon via casts)
+        $endTime = now();
+        $durationMinutes = $report->start_time?->diffInMinutes($endTime) ?? 0;
 
         // 5. Update tabel 'reports'
         $report->update([
             'status' => 'completed',
-            'end_time' => date('Y-m-d H:i:s', $endTime), // Simpan kembali ke datetime untuk konsistensi database
+            'end_time' => $endTime,
             'duration_minutes' => $durationMinutes,
         ]);
 
@@ -142,9 +174,9 @@ class TaskController extends Controller
 
     public function claim(Report $report)
     {
-    // 1. Cek Keamanan: Pastikan tugas ini bisa diklaim (status accepted dan belum ada yang ditugaskan)
-        if ($report->status !== 'accepted' || $report->assigned_technician_id !== null) {
-        return redirect()->route('teknisi.dashboard')->with('error', 'Tugas ini sudah diambil atau belum disetujui.');
+    // 1. Cek Keamanan: Pastikan tugas ini bisa diklaim (status pending/accepted dan belum ada yang ditugaskan)
+        if (!in_array($report->status, ['pending', 'accepted']) || $report->assigned_technician_id !== null) {
+        return redirect()->route('teknisi.dashboard')->with('error', 'Tugas ini tidak tersedia untuk diklaim.');
     }
 
     // 2. Klaim Tugas dan set status ke on_process
