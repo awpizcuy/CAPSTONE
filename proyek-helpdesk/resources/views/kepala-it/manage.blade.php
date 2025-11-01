@@ -22,7 +22,7 @@
                                 <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ \Carbon\Carbon::parse($report->tanggal_pengajuan)->format('d M Y') }}</p>
                             </div>
                             <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Status Saat Ini</p>
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Status Saat Ini</p>
                                 <p class="mt-1">
                                     <x-status-badge :status="$report->status" />
                                 </p>
@@ -31,6 +31,27 @@
                                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Deskripsi</p>
                                 <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ $report->deskripsi_pengajuan }}</p>
                             </div>
+                            {{-- Foto Kerusakan Awal --}}
+                            <div class="inline-block p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Foto Kerusakan Awal</p>
+                                @php
+                                    $fotoBeforePath = $report->foto_awal ?? ($report->resolution?->foto_before ?? null);
+                                    $fotoBeforeUrl = null;
+                                    if ($fotoBeforePath) {
+                                        $fotoBeforeUrl = (\Illuminate\Support\Facades\Storage::disk('public')->exists($fotoBeforePath))
+                                            ? \Illuminate\Support\Facades\Storage::disk('public')->url($fotoBeforePath)
+                                            : asset('storage/' . ltrim($fotoBeforePath, '/'));
+                                    }
+                                @endphp
+                                @if($fotoBeforeUrl)
+                                    {{-- Menghapus w-full dan object-contain agar lebar gambar otomatis --}}
+                                    <img src="{{ $fotoBeforeUrl }}" alt="Foto Kerusakan Awal" class="mt-2 rounded-lg max-h-64" />
+                                @else
+                                    <div class="mt-2 h-40 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-sm text-gray-500">Tidak ada foto kerusakan</div>
+                                @endif
+                            </div>
+                            {{-- === AKHIR BLOK FOTO === --}}
+
                         </div>
                     </div>
 
@@ -123,11 +144,78 @@
                                         </p>
                                     </div>
 
+                                    @if($report->status === 'rated')
+                                    <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                                        <p class="text-sm font-medium text-yellow-900 dark:text-yellow-300">Rating dari Pelapor</p>
+                                        <div class="mt-2 flex items-center gap-1">
+                                            @for($i = 1; $i <= 5; $i++)
+                                                @if($i <= $report->rating)
+                                                    <svg class="w-5 h-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                    </svg>
+                                                @else
+                                                    <svg class="w-5 h-5 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                    </svg>
+                                                @endif
+                                            @endfor
+                                            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                                                ({{ $report->rating }} dari 5)
+                                            </span>
+                                        </div>
+                                        @if($report->rating_feedback)
+                                            <p class="mt-2 text-sm text-yellow-800 dark:text-yellow-200">
+                                                "{{ $report->rating_feedback }}"
+                                            </p>
+                                        @endif
+                                    </div>
+                                    @endif
+
                                     <div>
                                         <a href="{{ route('kepala.report.print', $report) }}" target="_blank" class="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition">
                                             Cetak / Simpan PDF
                                         </a>
                                     </div>
+
+                                    {{-- Foto Before/After --}}
+                                    @if ($report->resolution)
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Foto Sebelum</p>
+                                                @php
+                                                    $beforePath = $report->resolution?->foto_before;
+                                                    $beforeUrl = null;
+                                                    if ($beforePath) {
+                                                        $beforeUrl = (\Illuminate\Support\Facades\Storage::disk('public')->exists($beforePath))
+                                                            ? \Illuminate\Support\Facades\Storage::disk('public')->url($beforePath)
+                                                            : asset('storage/' . ltrim($beforePath, '/'));
+                                                    }
+                                                @endphp
+                                                @if($beforeUrl)
+                                                    <img src="{{ $beforeUrl }}" alt="Foto Sebelum" class="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 w-full object-cover max-h-96" />
+                                                @else
+                                                    <div class="mt-2 h-48 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-sm text-gray-500">Tidak ada foto</div>
+                                                @endif
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Foto Sesudah</p>
+                                                @php
+                                                    $afterPath = $report->resolution?->foto_after;
+                                                    $afterUrl = null;
+                                                    if ($afterPath) {
+                                                        $afterUrl = (\Illuminate\Support\Facades\Storage::disk('public')->exists($afterPath))
+                                                            ? \Illuminate\Support\Facades\Storage::disk('public')->url($afterPath)
+                                                            : asset('storage/' . ltrim($afterPath, '/'));
+                                                    }
+                                                @endphp
+                                                @if($afterUrl)
+                                                    <img src="{{ $afterUrl }}" alt="Foto Sesudah" class="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 w-full object-cover max-h-96" />
+                                                @else
+                                                    <div class="mt-2 h-48 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-sm text-gray-500">Tidak ada foto</div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endif
 
                                     @if ($report->resolution)
                                         <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -167,6 +255,8 @@
                         @endif
                     </div>
                 </div>
+
+
             </div>
         </div>
     </div>

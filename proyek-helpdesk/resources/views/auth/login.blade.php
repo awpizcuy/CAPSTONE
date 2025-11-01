@@ -5,7 +5,7 @@
     <div class="mb-4">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Masuk ke Akun</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Gunakan email dan password Anda.</p>
-    </div>
+    </div>    
 
     <form method="POST" action="{{ route('login') }}">
         @csrf

@@ -2,9 +2,10 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800 dark:text-gray-200" />
+                <div class="shrink-0 flex items-center gap-3">
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
+                        <img src="{{ asset('images/lemigas.png') }}" alt="Logo Lemigas" class="h-8 w-auto" style="filter: none;">
+                        <span class="font-bold text-lg text-white tracking-tight">Helpdesk - PT. Lemigas</span>
                     </a>
                 </div>
 
@@ -24,6 +25,9 @@
                         </x-nav-link>
                         <x-nav-link :href="route('kepala.technicians.index')" :active="request()->routeIs('kepala.technicians.*')">
                             {{ __('Kelola Teknisi') }}
+                        </x-nav-link>
+                        <x-nav-link :href="route('kepala.users.index')" :active="request()->routeIs('kepala.users.*')">
+                            {{ __('Kelola Admin Gedung') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -146,6 +150,9 @@
             @if(auth()->user()->role == 'kepala_it')
                 <x-responsive-nav-link :href="route('kepala.technicians.index')" :active="request()->routeIs('kepala.technicians.*')">
                     {{ __('Kelola Teknisi') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('kepala.users.index')" :active="request()->routeIs('kepala.users.*')">
+                    {{ __('Kelola Admin Gedung') }}
                 </x-responsive-nav-link>
             @endif
         </div>

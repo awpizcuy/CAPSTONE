@@ -5,9 +5,10 @@ namespace App\Http\Controllers\AdminGedung;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Report;
-use App\Models\User; // <-- TAMBAHKAN INI
-use App\Notifications\NewReportSubmitted; // <-- TAMBAHKAN INI
+use App\Models\User;
+use App\Notifications\NewReportSubmitted;
 
 class ReportController extends Controller
 {
@@ -18,6 +19,8 @@ class ReportController extends Controller
     {
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
+        $filterStatus = $request->query('filter_status');
+        $filterCategory = $request->query('filter_category');
 
         $query = Report::where('user_id', Auth::id());
 
@@ -31,13 +34,36 @@ class ReportController extends Controller
             }
         }
 
+        // Tambahkan Filter Status
+        if ($filterStatus) {
+            $query->where('status', $filterStatus);
+        }
+
+        // Tambahkan Filter Kategori
+        if ($filterCategory) {
+            $query->where('kategori', $filterCategory);
+        }
+
         $laporan = $query->orderBy('created_at', 'desc')->get();
+
+        // STATS
+        $totalReports = Report::where('user_id', Auth::id())->count();
+        $pendingReports = Report::where('user_id', Auth::id())->where('status', 'pending')->count();
+        $completedReports = Report::where('user_id', Auth::id())->whereIn('status', ['completed', 'rated'])->count();
+        $rejectedReports = Report::where('user_id', Auth::id())->where('status', 'rejected')->count();
+
 
         // Kirim data ke view
         return view('admin-gedung.dashboard', [
             'laporan' => $laporan,
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
+            'filterStatus' => $filterStatus,
+            'filterCategory' => $filterCategory,
+            'totalReports' => $totalReports,
+            'pendingReports' => $pendingReports,
+            'completedReports' => $completedReports,
+            'rejectedReports' => $rejectedReports,
         ]);
     }
 
@@ -55,32 +81,40 @@ class ReportController extends Controller
     public function store(Request $request)
     {
         // 1. Validasi data yang masuk
-        $request->validate([
+        $validated = $request->validate([
             'kategori' => 'required|string|in:peminjaman,instalasi,kerusakan',
             'nama_pelapor' => 'required|string|max:255',
-            'tanggal_pengajuan' => 'required|date',
             'deskripsi_pengajuan' => 'required|string',
+            'foto_awal' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Max 2MB
         ]);
 
-        // 2. Simpan data ke database dan simpan ke variabel
-        $newReport = Report::create([ // <-- Simpan ke variabel $newReport
-            'user_id' => Auth::id(), // Ambil ID user yang sedang login
-            'kategori' => $request->kategori,
-            'nama_pelapor' => $request->nama_pelapor,
-            'tanggal_pengajuan' => $request->tanggal_pengajuan,
-            'deskripsi_pengajuan' => $request->deskripsi_pengajuan,
-            'status' => 'pending', // Status awal
-        ]);
+        // 2. Persiapkan data untuk disimpan
+        $reportData = [
+            'user_id' => Auth::id(),
+            'kategori' => $validated['kategori'],
+            'nama_pelapor' => $validated['nama_pelapor'],
+            'tanggal_pengajuan' => now()->toDateString(),
+            'deskripsi_pengajuan' => $validated['deskripsi_pengajuan'],
+            'status' => 'pending'
+        ];
 
-        // 3. [BARU] Kirim Notifikasi ke semua Kepala IT
-        $kepalaITUsers = User::where('role', 'kepala_it')->get();
-        foreach ($kepalaITUsers as $user) {
-            $user->notify(new NewReportSubmitted($newReport)); // Gunakan variabel $newReport
+        // 3. Upload dan simpan foto jika ada
+        if ($request->hasFile('foto_awal') && in_array($validated['kategori'], ['instalasi', 'kerusakan'])) {
+            $reportData['foto_awal'] = $request->file('foto_awal')->store('reports/initial', 'public');
         }
 
-        // 4. Alihkan kembali ke dashboard dengan pesan sukses
+        // 4. Buat record baru di database
+        $newReport = Report::create($reportData);
+
+        // 5. Kirim Notifikasi ke semua Kepala IT
+        $kepalaITUsers = User::where('role', 'kepala_it')->get();
+        foreach ($kepalaITUsers as $user) {
+            $user->notify(new NewReportSubmitted($newReport));
+        }
+
+        // 6. Alihkan kembali ke dashboard dengan pesan sukses
         return redirect()->route('admin.dashboard')
-                         ->with('success', 'Laporan Anda telah berhasil dikirim!');
+                        ->with('success', 'Laporan Anda telah berhasil dikirim!');
     }
 
     /**

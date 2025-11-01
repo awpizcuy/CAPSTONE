@@ -20,8 +20,9 @@ class TaskController extends Controller
         $teknisiId = Auth::id();
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
+        $kategori = $request->query('kategori');
 
-    // 1. Tugas Aktif (Accepted atau On Process)
+        // 1. Tugas Aktif (Accepted atau On Process)
         $tasksActiveQuery = Report::where('assigned_technician_id', $teknisiId)
                        ->whereIn('status', ['accepted', 'on_process'])
                        ->with('reporter')
@@ -37,9 +38,15 @@ class TaskController extends Controller
             }
         }
 
+        // Tambahkan Filter Kategori
+        if (!empty($kategori)) {
+            $tasksActiveQuery->where('kategori', $kategori);
+        }
+
         $tasksActive = $tasksActiveQuery->get();
 
-    // 2. Tugas Riwayat (Completed atau Rated)
+
+        // 2. Tugas Riwayat (Completed atau Rated)
         $tasksHistoryQuery = Report::where('assigned_technician_id', $teknisiId)
                         ->whereIn('status', ['completed', 'rated'])
                         ->with('reporter')
@@ -53,6 +60,11 @@ class TaskController extends Controller
             } elseif ($dateTo) {
                 $tasksHistoryQuery->whereDate('tanggal_pengajuan', '<=', $dateTo);
             }
+        }
+
+        // Tambahkan Filter Kategori
+        if (!empty($kategori)) {
+            $tasksHistoryQuery->where('kategori', $kategori);
         }
 
         $tasksHistory = $tasksHistoryQuery->paginate(10);
@@ -72,16 +84,61 @@ class TaskController extends Controller
             }
         }
 
+        // Tambahkan Filter Kategori
+        if (!empty($kategori)) {
+            $tasksClaimableQuery->where('kategori', $kategori);
+        }
+
         $tasksClaimable = $tasksClaimableQuery->get();
 
-    // Kirim kedua set data
+        // Statistik / kartu
+        $totalReports = Report::where('assigned_technician_id', $teknisiId)
+            ->when($kategori, function($q) use ($kategori) {
+                return $q->where('kategori', $kategori);
+            })->count();
+
+        $pendingReports = Report::where('assigned_technician_id', $teknisiId)
+            ->where('status', 'pending')
+            ->when($kategori, function($q) use ($kategori) {
+                return $q->where('kategori', $kategori);
+            })->count();
+
+        $avgDurationQuery = Report::where('assigned_technician_id', $teknisiId)
+            ->whereIn('status', ['completed', 'rated'])
+            ->when($kategori, function($q) use ($kategori) {
+                return $q->where('kategori', $kategori);
+            });
+
+        $avgDurationMinutes = $avgDurationQuery->whereNotNull('duration_minutes')->avg('duration_minutes');
+
+        if ($avgDurationMinutes === null) {
+            $avgDurationLabel = '—';
+        } else {
+            $avg = (int) round($avgDurationMinutes);
+            if ($avg >= 60) {
+                $hours = floor($avg / 60);
+                $minutes = $avg % 60;
+                $avgDurationLabel = $hours . 'h' . ($minutes > 0 ? ' ' . $minutes . 'm' : '');
+            } else {
+                $avgDurationLabel = $avg . 'm';
+            }
+        }
+
+        // Ambil daftar kategori unik untuk dropdown filter
+        $categories = Report::select('kategori')->distinct()->orderBy('kategori')->pluck('kategori');
+
         return view('teknisi.dashboard', [
-        'tasksActive' => $tasksActive,
-        'tasksClaimable' => $tasksClaimable, // <-- Kirim data klaim
-        'tasksHistory' => $tasksHistory,
-        'dateFrom' => $dateFrom,
-        'dateTo' => $dateTo,
-    ]);
+            'tasksActive' => $tasksActive,
+            'tasksClaimable' => $tasksClaimable,
+            'tasksHistory' => $tasksHistory,
+            'dateFrom' => $dateFrom,
+            'dateTo' => $dateTo,
+            'kategori' => $kategori,
+            'categories' => $categories,
+            'totalReports' => $totalReports,
+            'pendingReports' => $pendingReports,
+            'avgDurationLabel' => $avgDurationLabel,
+        ]);
     }
 
     /**
@@ -115,8 +172,9 @@ class TaskController extends Controller
         }
 
         return view('teknisi.complete', [
-            'report' => $report
+            'report' => $report,
         ]);
+
     }
 
     public function storeCompletion(Request $request, Report $report)
@@ -135,10 +193,10 @@ class TaskController extends Controller
             'foto_after' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // 3. Upload file foto
-        // 'public/resolutions' akan menyimpan di folder 'storage/app/public/resolutions'
-        $pathBefore = $request->file('foto_before')->store('resolutions');
-        $pathAfter = $request->file('foto_after')->store('resolutions');
+        // 3. Upload file foto ke disk 'public' agar bisa diakses via Storage::url()
+        // Lokasi hasil: storage/app/public/resolutions → url: /storage/resolutions/...
+        $pathBefore = $request->file('foto_before')->store('resolutions', 'public');
+        $pathAfter = $request->file('foto_after')->store('resolutions', 'public');
 
         // 4. Hitung Durasi & Hentikan Timer (gunakan Carbon via casts)
         $endTime = now();
@@ -154,20 +212,20 @@ class TaskController extends Controller
         // 6. Buat data di tabel 'resolutions'
         Resolution::create([
             'report_id' => $report->id,
-            'barang' => $validated['barang'],
-            'qty' => $validated['qty'],
+            'barang' => $validated['barang'] ?? null,
+            'qty' => $validated['qty'] ?? null,
             'deskripsi_pekerjaan' => $validated['deskripsi_pekerjaan'],
             'foto_before' => $pathBefore,
             'foto_after' => $pathAfter,
         ]);
 
-        // 8 Kirim notifikasi ke Admin Gedung
+        // 7. Refresh dan kirim notifikasi ke pelapor
         $report->refresh();
-            if ($report->reporter) {
+        if ($report->reporter) {
             $report->reporter->notify(new ReportCompletedByTechnician($report));
-    }
+        }
 
-        // 9. Kembalikan ke dashboard
+        // 8. Kembalikan ke dashboard
         return redirect()->route('teknisi.dashboard')
                          ->with('success', 'Pekerjaan telah selesai dan laporan terkirim!');
     }

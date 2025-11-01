@@ -6,7 +6,9 @@ use App\Http\Controllers\AdminGedung\ReportController;
 use App\Http\Controllers\HeadIT\ReportController as HeadITReportController;
 use App\Http\Controllers\Teknisi\TaskController;
 use App\Http\Controllers\HeadIT\TechnicianController;
+use App\Http\Controllers\HeadIT\UserManagementController;
 use App\Http\Controllers\NotificationController; // Pastikan ini ada
+use App\Http\Controllers\LandingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,9 +23,7 @@ require __DIR__.'/auth.php';
 | Rute Publik
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () {
-    return redirect('login');
-});
+Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('landing');
 
 
 /*
@@ -93,6 +93,7 @@ Route::middleware(['auth'])->group(function () {
         // Export/Print view for completed/rated reports
         Route::get('/report/{report}/print', [HeadITReportController::class, 'printView'])->name('report.print');
         Route::resource('technicians', TechnicianController::class);
+    Route::resource('users', UserManagementController::class)->except(['show']);
     });
 
     /*

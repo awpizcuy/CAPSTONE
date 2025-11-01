@@ -7,6 +7,13 @@
 
     <div class="space-y-6">
 
+        {{-- Navbar singkat untuk tindakan Kepala IT --}}
+        <div class="flex items-center gap-4 px-2">
+            <a href="{{ route('kepala.dashboard') }}" class="text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 pb-2">
+                Dashboard Kepala IT
+            </a>
+        </div>
+
         {{-- Bagian Kartu Statistik --}}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
@@ -98,7 +105,7 @@
 
                         {{-- Input Pencarian --}}
                         <x-text-input type="text" name="search" placeholder="Cari pelapor, deskripsi..." class="rounded-lg text-sm" :value="$searchTerm ?? ''" />
-                        
+
                         {{-- Tombol Aksi --}}
                         <div class="flex items-center gap-3">
                             <x-primary-button type="submit" class="flex-1">Filter/Cari</x-primary-button>

@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>Helpdesk - PT. Lemigas</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -20,7 +20,7 @@
                 <a href="/">
                     <x-application-logo class="w-16 h-16 mx-auto fill-current text-indigo-600 dark:text-indigo-400" />
                 </a>
-                <h1 class="mt-4 text-2xl font-semibold text-gray-900 dark:text-white">{{ config('app.name', 'Laravel') }}</h1>
+                <h1 class="mt-4 text-2xl font-semibold text-gray-900 dark:text-white">Helpdesk LEMIGAS</h1>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Silakan masuk untuk melanjutkan</p>
             </div>
 

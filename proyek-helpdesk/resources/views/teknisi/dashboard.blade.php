@@ -5,9 +5,62 @@
         </h2>
     </x-slot>
 
+
     <div class="space-y-6">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div class="p-6 md:p-8">
+                {{-- Statistik singkat untuk Teknisi --}}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Laporan</p>
+                                    <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ $totalReports ?? 0 }}</p>
+                                </div>
+                                <div class="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
+                                    <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Laporan Pending</p>
+                                    <p class="mt-2 text-3xl font-bold text-red-500">{{ $pendingReports ?? 0 }}</p>
+                                </div>
+                                <div class="p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                                    <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2a10 10 0 100 20 10 10 0 000-20z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
+                        <div class="p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Rata-rata Waktu Selesai</p>
+                                    <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ $avgDurationLabel ?? '—' }}</p>
+                                </div>
+                                <div class="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                                    <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 @if (session('success'))
                     <x-flash-message type="success">{{ session('success') }}</x-flash-message>
                 @endif
@@ -21,6 +74,14 @@
                         <input type="date" name="date_from" value="{{ request('date_from') ?? ($dateFrom ?? '') }}" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                         <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">s.d.</span>
                         <input type="date" name="date_to" value="{{ request('date_to') ?? ($dateTo ?? '') }}" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                        <select name="kategori" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Semua Kategori</option>
+                            @if(!empty($categories))
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat }}" {{ (request('kategori') ?? ($kategori ?? '')) == $cat ? 'selected' : '' }}>{{ ucfirst($cat) }}</option>
+                                @endforeach
+                            @endif
+                        </select>
                         <x-primary-button type="submit">Terapkan</x-primary-button>
                         <a href="{{ route('teknisi.dashboard') }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                             Reset
@@ -101,7 +162,7 @@
                 <div class="mb-8">
                     <div class="flex items-center justify-between mb-4">
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Tugas Tersedia untuk Klaim</h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Tugas Tersedia</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Ambil tugas yang tersedia</p>
                         </div>
                     </div>

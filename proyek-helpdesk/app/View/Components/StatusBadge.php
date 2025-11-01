@@ -9,7 +9,7 @@ use Illuminate\View\Component;
 class StatusBadge extends Component
 {
     public string $status;
-    public string $text; // Kita tetap kirim teksnya
+    public string $text;
 
     /**
      * Create a new component instance.
@@ -20,7 +20,7 @@ class StatusBadge extends Component
         // Ubah teks dasar di sini jika perlu
         $this->text = ucfirst(str_replace('_', ' ', $status));
          if ($status == 'completed') {
-             $this->text = 'Completed'; // Sesuaikan teks jika perlu
+             $this->text = 'Completed';
          }
     }
 
@@ -29,7 +29,6 @@ class StatusBadge extends Component
      */
     public function render(): View|Closure|string
     {
-        // Tidak ada lagi logika warna di sini
         return view('components.status-badge');
     }
 }

@@ -6,6 +6,73 @@
     </x-slot>
 
     <div class="space-y-6">
+        {{-- Bagian Kartu Statistik --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {{-- Total Laporan --}}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Laporan</p>
+                            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ $totalReports }}</p>
+                        </div>
+                        <div class="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
+                            <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{-- Laporan Pending --}}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Laporan Pending</p>
+                            <p class="mt-2 text-3xl font-bold text-orange-600 dark:text-orange-400">{{ $pendingReports }}</p>
+                        </div>
+                        <div class="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                            <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{-- Laporan Selesai --}}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Laporan Selesai</p>
+                            <p class="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">{{ $completedReports }}</p>
+                        </div>
+                        <div class="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                           <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{-- Laporan Ditolak --}}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Laporan Ditolak</p>
+                            <p class="mt-2 text-3xl font-bold text-red-600 dark:text-red-400">{{ $rejectedReports }}</p>
+                        </div>
+                        <div class="p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                            <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
             <div class="p-6 md:p-8">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -34,6 +101,26 @@
                         <input type="date" name="date_from" value="{{ request('date_from') ?? ($dateFrom ?? '') }}" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                         <span class="text-gray-500 dark:text-gray-400 text-sm font-medium">s.d.</span>
                         <input type="date" name="date_to" value="{{ request('date_to') ?? ($dateTo ?? '') }}" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                        
+                        {{-- Filter Status --}}
+                        <select name="filter_status" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Filter Status</option>
+                            @foreach(['pending', 'accepted', 'on_process', 'completed', 'rated', 'rejected', 'hold'] as $status)
+                                <option value="{{ $status }}" {{ (request('filter_status') ?? $filterStatus ?? '') == $status ? 'selected' : '' }}>
+                                    {{ ucfirst(str_replace('_', ' ', $status)) }}
+                                </option>
+                            @endforeach
+                        </select>
+
+                        {{-- Filter Kategori --}}
+                        <select name="filter_category" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Filter Kategori</option>
+                            @foreach(['kerusakan', 'peminjaman', 'instalasi'] as $kategori)
+                                <option value="{{ $kategori }}" {{ (request('filter_category') ?? $filterCategory ?? '') == $kategori ? 'selected' : '' }}>
+                                    {{ ucfirst($kategori) }}
+                                </option>
+                            @endforeach
+                        </select>
                         <x-primary-button type="submit">Terapkan</x-primary-button>
                         <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                             Reset

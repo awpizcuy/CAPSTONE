@@ -14,6 +14,23 @@
                         <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Laporan awal:</p>
                         <p class="mt-1 text-sm text-gray-900 dark:text-white">{{ $report->deskripsi_pengajuan }}</p>
                     </div>
+                    <div class="mt-4">
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foto Kerusakan / Kondisi Awal</p>
+                        @php
+                            $fotoBeforePath = $report->foto_awal;
+                            $fotoBeforeUrl = null;
+                            if ($fotoBeforePath) {
+                                $fotoBeforeUrl = (\Illuminate\Support\Facades\Storage::disk('public')->exists($fotoBeforePath))
+                                    ? \Illuminate\Support\Facades\Storage::disk('public')->url($fotoBeforePath)
+                                    : asset('storage/' . ltrim($fotoBeforePath, '/'));
+                            }
+                        @endphp
+                        @if($fotoBeforeUrl)
+                            <img src="{{ $fotoBeforeUrl }}" alt="Foto Kerusakan" class="rounded-lg border w-full max-h-72 object-cover mt-2" />
+                        @else
+                            <div class="h-40 rounded-lg border border-dashed flex items-center justify-center text-sm text-gray-500">Tidak ada foto kerusakan</div>
+                        @endif
+                    </div>
                 </div>
 
                 @if ($errors->any())

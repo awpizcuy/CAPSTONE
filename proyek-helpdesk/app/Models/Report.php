@@ -26,6 +26,7 @@ class Report extends Model
         'nama_pelapor',
         'tanggal_pengajuan',
         'deskripsi_pengajuan',
+        'foto_awal',            // Foto kondisi awal untuk instalasi/kerusakan
         'status',
         'status_note',          // Untuk Kepala IT nanti
         'start_time',           // Untuk Teknisi nanti
