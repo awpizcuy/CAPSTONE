@@ -25,7 +25,7 @@ Aplikasi ini dibangun di atas fondasi PHP modern, memanfaatkan fitur dan perform
 | :--- | :--- | :--- | :--- |
 | **Build Tool** | Vite | Menggantikan Laravel Mix, menawarkan kecepatan *development* yang lebih baik. | |
 | **CSS Framework** | Tailwind CSS `^3.4.1` | Utility-first CSS framework untuk membangun antarmuka dengan cepat dan responsif. | |
-| **Dependency Management** | NPM | Mengelola *library* *frontend* seperti `axios` dan `vue` (jika digunakan, umumnya untuk Breeze). | |
+| **Dependency Management** | NPM | Mengelola *library* *frontend* seperti `axios` dan `vue`. | |
 
 ---
 
@@ -84,7 +84,7 @@ Aplikasi ini telah dikonfigurasi dengan *script* Composer untuk memudahkan prose
 
 1.  **Clone Repositori:**
     ```bash
-    git clone [ALAMAT REPO ANDA]
+    git clone https://github.com/awpizcuy/CAPSTONE.git
     cd proyek-helpdesk
     ```
 
