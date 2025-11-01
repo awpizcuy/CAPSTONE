@@ -1,61 +1,110 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🛠️ PROYEK CAPSTONE: HELPDESK SYSTEM (Sistem Pelaporan Tiket Multi-Role)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## 🌟 Deskripsi Proyek
 
-## About Laravel
+**Helpdesk System** adalah aplikasi web modern yang dirancang untuk mengelola siklus hidup penuh dari sebuah laporan atau tiket insiden, mulai dari pengajuan hingga penyelesaian, penilaian, dan dokumentasi.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Dibangun dengan arsitektur Model-View-Controller (MVC) menggunakan **Laravel**, sistem ini menerapkan otorisasi ketat berbasis peran (*Role-Based Access Control* - RBAC) untuk memisahkan fungsionalitas bagi tiga aktor utama: Admin Gedung, Kepala IT, dan Teknisi.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🚀 Tech Stack dan Dependencies
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### ⚙️ Backend (PHP)
+Aplikasi ini dibangun di atas fondasi PHP modern, memanfaatkan fitur dan performa terbaru.
 
-## Learning Laravel
+| Komponen | Versi | Rasionalitas/Fungsi | Sumber |
+| :--- | :--- | :--- | :--- |
+| **Framework** | Laravel `^12.0` | Menyediakan arsitektur MVC yang solid dan fitur bawaan yang lengkap. | |
+| **Bahasa Pemrograman** | PHP `^8.2` | Memanfaatkan peningkatan kinerja dan fitur keamanan terbaru. | |
+| **API Authentication** | `laravel/sanctum ^4.2` | Digunakan untuk mengelola token API, mendukung otentikasi sesi berbasis cookie yang aman. | |
+| **ORM & Database** | Eloquent (Bawaan Laravel) | Abstrak data SQL, menyediakan akses basis data yang intuitif dan aman. | |
+| **Testing Framework** | `pestphp/pest ^3.8` | Digunakan untuk Feature dan Unit Testing yang cepat dan ekspresif. | |
+| **Code Style Checker**| `laravel/pint ^1.24` | Alat untuk memastikan konsistensi dan standar gaya kode. | |
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 🎨 Frontend (JavaScript/CSS)
+| Komponen | Versi/Type | Rasionalitas/Fungsi | Sumber |
+| :--- | :--- | :--- | :--- |
+| **Build Tool** | Vite | Menggantikan Laravel Mix, menawarkan kecepatan *development* yang lebih baik. | |
+| **CSS Framework** | Tailwind CSS `^3.4.1` | Utility-first CSS framework untuk membangun antarmuka dengan cepat dan responsif. | |
+| **Dependency Management** | NPM | Mengelola *library* *frontend* seperti `axios` dan `vue` (jika digunakan, umumnya untuk Breeze). | |
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 🔒 Autentikasi dan Otorisasi (Multi-Role)
 
-## Laravel Sponsors
+### 1. Sistem Autentikasi
+Aplikasi ini menggunakan paket **Laravel Breeze** sebagai *scaffolding* untuk mengimplementasikan fitur-fitur otentikasi standar, yang mencakup:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+* **Login/Logout:** Ditangani oleh `AuthenticatedSessionController`.
+* **Pendaftaran (Register):** Ditangani oleh `RegisteredUserController`.
+* **Reset Kata Sandi:** Fitur *Forgot Password* dan *Reset Password* terpisah.
 
-### Premium Partners
+### 2. Otorisasi Berbasis Peran (RBAC)
+Otorisasi diimplementasikan melalui kolom `role` pada tabel `users`.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+* **Middleware `role`**: Semua rute yang dilindungi menggunakan *middleware* `role:nama_peran` untuk memastikan hanya pengguna yang sah yang dapat mengakses *dashboard* dan fungsionalitas tertentu. (Asumsi middleware `CheckRole.php` ada dan terdaftar).
+* **Redirect Dashboard**: Setelah *login*, pengguna secara otomatis diarahkan ke *dashboard* yang sesuai dengan peran mereka:
+    * `admin_gedung` → `admin.dashboard`
+    * `kepala_it` → `kepala.dashboard`
+    * `teknisi` → `teknisi.dashboard`
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🗺️ Rancangan Basis Data Utama (Model & Relasi)
 
-## Code of Conduct
+Logika inti aplikasi diimplementasikan melalui dua model Eloquent utama:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 1. Model `User` (`App\Models\User`)
+* **Atribut Kunci:** `name`, `email`, `password`, `role`.
+* **Relasi:**
+    * `reports()`: **One-to-Many** (User membuat banyak Laporan) menggunakan `user_id`.
+    * `tasks()`: **One-to-Many** (Teknisi ditugaskan ke banyak Laporan) menggunakan `assigned_technician_id`.
 
-## Security Vulnerabilities
+### 2. Model `Report` (`App\Models\Report`)
+* **Atribut Pelaporan:** `user_id` (reporter), `assigned_technician_id`, `kategori`, `deskripsi_pengajuan`, `foto_awal` (Multimedia).
+* **Atribut Status/Proses:** `status`, `status_note`.
+* **Atribut Time Tracking:** `start_time`, `end_time`, `duration_minutes` (untuk pekerjaan Teknisi).
+* **Atribut Penilaian:** `rating`, `rating_feedback` (oleh Admin Gedung).
+* **Relasi:**
+    * `reporter()`: **Belongs To** User.
+    * `technician()`: **Belongs To** User.
+    * `resolution()`: **Has One** Resolution (Solusi/Foto Akhir).
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## 🛠️ Instalasi Lokal
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Aplikasi ini telah dikonfigurasi dengan *script* Composer untuk memudahkan proses *setup* dan *development*.
+
+### Persyaratan
+* PHP >= 8.2
+* Composer
+* Node.js (LTS) & NPM
+
+### Langkah-langkah Instalasi
+
+1.  **Clone Repositori:**
+    ```bash
+    git clone [ALAMAT REPO ANDA]
+    cd proyek-helpdesk
+    ```
+
+2.  **Jalankan Skrip Setup Penuh:**
+    Gunakan skrip `setup` yang sudah didefinisikan dalam `composer.json` untuk menginstal semua dependensi, mengkonfigurasi file `.env`, dan menjalankan migrasi basis data.
+
+    ```bash
+    composer run setup
+    # Perintah yang dijalankan: composer install, copy .env, key:generate, migrate --force, npm install, npm run build
+    ```
+
+### Menjalankan Aplikasi (Development)
+
+Gunakan skrip `dev` yang menjalankan beberapa layanan sekaligus untuk lingkungan pengembangan yang lengkap:
+
+```bash
+composer run dev
+# Perintah yang dijalankan: 
+# 1. php artisan serve (Server Web)
+# 2. php artisan queue:listen (Memproses Notifikasi/Job Asinkron)
+# 3. php artisan pail (Live Monitoring Log)
+# 4. npm run dev (Vite Live Reloading)
+# Semua berjalan secara bersamaan dengan `npx concurrently`
